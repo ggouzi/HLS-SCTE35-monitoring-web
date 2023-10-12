@@ -167,8 +167,8 @@ function fetchMediaPlaylist(media_playlist_url) {
                 		duration_str = lines[i].split(":")[1].replace(',', '');
                 		duration = parseFloat(duration_str);
                 		if (duration < chunk_duration) {
-        					chunk_duration = Math.round(duration) * 1000;
-       					}
+        							chunk_duration = Math.round(duration) * 1000;
+       							}
                 	}
                 }
 
@@ -176,7 +176,7 @@ function fetchMediaPlaylist(media_playlist_url) {
                 for (var i=0; i<lines.length; i++) {
                 	if (containsAny(lines[i], keywords) != null) {
                 		ad_break = true;
-                        ad_break_matched.push(lines[i]);
+                    ad_break_matched.push(lines[i]);
                 	}
                 }
 
@@ -212,7 +212,7 @@ function fetchMediaPlaylist(media_playlist_url) {
         	}
         },
     	error: function(){
-      		errorMessage("Cannot fetch HLS media playlist URL");
+      		error("Cannot fetch HLS media playlist URL");
             $("#videoPlayer").hide().trigger('pause');
    		}
 	});
@@ -239,7 +239,7 @@ function syntaxHighlight(d) {
 
 function parseAdBreakLine(line) {
     const regexDaterange = /#EXT-X-DATERANGE:ID="([a-zA-Z0-9-]+)".*START-DATE="([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.*)".*PLANNED-DURATION=([0-9]+(.[0-9]+)).*SCTE35-(IN|OUT)=0x(.*)/;
-    const match = line.match(regexDaterange);
+    var match = line.match(regexDaterange);
     if (match) {
         adbreak_id = match[1];
         start_date = match[2];
@@ -252,6 +252,17 @@ function parseAdBreakLine(line) {
     else {
         console.log("Cannot parse EXT-X-DATERANGE tag");
     }
+		const regexCueOut = /#EXT-X-CUE-OUT:(DURATION=)?([0-9-]+).*/;
+		match = line.match(regexCueOut);
+		if (match) {
+        adbreak_id = -1;
+				duration = match[2];
+				data = {"adbreak_id": adbreak_id, "duration": duration};
+				return data;
+		}
+		else {
+				console.log("Cannot parse EXT-X-CUE-OUT tag");
+		}
     return null;
 }
 
@@ -260,12 +271,11 @@ function parseAdBreakLines(lines) {
     for (var i=0; i<lines.length; i++) {
         adbreak = parseAdBreakLine(lines[i]);
         if (adbreak !== null) {
-
             adbreaks.push(adbreak);
             if (i == 0 ) {
-                $("#spliceParsingDiv").append("<br/><h5>List of EXT-X-DATERANGE splices we could parse:</h5><ul>");
+                $("#spliceParsingDiv").append("<br/><h5>List of SCTE35 splices being parsed:</h5><ul>");
             }
-            $("#spliceParsingDiv").append("<li><a id='" + adbreak[i]["adbreak_id"] + "' class='spliceLink' href='#' onclick='displaySpliceInfo(this.id, event);' >Splice " + adbreak[i]["adbreak_id"] + "</a></li>");
+            $("#spliceParsingDiv").append("<li><a id='" + adbreak["adbreak_id"] + "' class='spliceLink' href='#' onclick='displaySpliceInfo(this.id, event);' >Splice " + adbreak["adbreak_id"] + "</a></li>");
             $("#spliceParsingDiv").append("</ul>");
         }
     }
